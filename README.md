@@ -1,7 +1,7 @@
 # Scope
 
 iwscan is a simple python script that parses the result if the "iw" command and exposes it as prometheus metrics.
-It's also available as a docker image on [alexlepape/iwscan:https://hub.docker.com/r/alexlepape/iwscan]
+It's also available as a docker image on [alexlepape/iwscan](https://hub.docker.com/r/alexlepape/iwscan)
 
 # Notes
 
