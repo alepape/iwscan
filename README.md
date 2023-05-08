@@ -18,9 +18,19 @@ It can then be used to generate a nice Grafana dashboard:
 # Setup
 
 - deploy the image [alexlepape/iwscan](https://hub.docker.com/r/alexlepape/iwscan) on your RPi Docker
+- don't forget to check that it's privileged and the network type to host
+- example docker compose:
+```yaml
+  iwscan:
+    container_name: iwscan
+    network_mode: "host"
+    image: alexlepape/iwscan:latest
+    restart: unless-stopped
+    privileged: true
+```
 - test it on http://<your docker IP>:5024/metrics
 - add it as a source in your prometheus
-```
+```yaml
   - job_name: 'wifiscan'
     static_configs:
       - targets: ['<IP>:5024']
