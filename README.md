@@ -7,6 +7,7 @@ It can then be used to generate a nice Grafana dashboard:
 ![iwscan grafana](https://user-images.githubusercontent.com/2038195/236711840-6d818868-b787-4f71-935d-475c5d25bb57.png)
 
 - it can be used to detect polluting wifi networks from the outside or selecting the right channels for your APs
+- you can use overrides to get rid of the weird / long SSIDs (ex: all those `\x00\x00\x00\x00\x00\x00...`)
 
 # Notes
 
