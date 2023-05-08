@@ -1,7 +1,10 @@
 # Scope
 
 iwscan is a simple python script that parses the result if the "iw" command and exposes it as prometheus metrics.
-It's also available as a docker image on [alexlepape/iwscan](https://hub.docker.com/r/alexlepape/iwscan)
+It's also available as a docker image on [alexlepape/iwscan](https://hub.docker.com/r/alexlepape/iwscan).
+It can then be used to generate a nice Grafana dashboard:
+
+![iwscan grafana](https://user-images.githubusercontent.com/2038195/236711840-6d818868-b787-4f71-935d-475c5d25bb57.png)
 
 # Notes
 
@@ -12,8 +15,15 @@ It's also available as a docker image on [alexlepape/iwscan](https://hub.docker.
   - priviledge mode
   - network type "host"
 
-# Grafana Dashboard
+# Setup
 
-- An example dashboard can be found [here](grafana.json)
-
-![iwscan grafana](https://user-images.githubusercontent.com/2038195/236711840-6d818868-b787-4f71-935d-475c5d25bb57.png)
+- deploy the image [alexlepape/iwscan](https://hub.docker.com/r/alexlepape/iwscan) on your RPi Docker
+- test it on http://<your docker IP>:5024/metrics
+- add it as a source in your prometheus
+```
+  - job_name: 'wifiscan'
+    static_configs:
+      - targets: ['<IP>:5024']
+```
+- an example dashboard can be found [here](grafana.json)
+- you can just point it to the proper node (your RPi IP)
