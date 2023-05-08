@@ -14,6 +14,6 @@ It's also available as a docker image on [alexlepape/iwscan](https://hub.docker.
 
 # Grafana Dashboard
 
-- An example dashboard can be found here: 
+- An example dashboard can be found [here](grafana.json)
 
 ![iwscan grafana](https://user-images.githubusercontent.com/2038195/236711840-6d818868-b787-4f71-935d-475c5d25bb57.png)
