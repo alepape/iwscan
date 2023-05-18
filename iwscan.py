@@ -58,8 +58,6 @@ def parseiwscan(iw_output):
                 channel = ""
             #print("channel=" + channel)
             output[bss]["channel"] = channel
-        else: #should not happen but here we are...
-            output[bss]["channel"] = "?"
     #print(output)
     return output
 
