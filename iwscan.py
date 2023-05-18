@@ -64,7 +64,7 @@ def parseiwscan(iw_output):
 def json2prom(parsed):
     output = "# HELP wifi_ssids All scanned SSIDs with their signal quality.\n"
     output += "# TYPE wifi_ssids gauge\n"
-    for mac in parsed:
+    for mac in parsed: # TODO: protect from missing attributes
         output += "wifi_ssids{mac=\"" + mac + "\",ssid=\"" + parsed[mac]["ssid"] + "\",freq=\"" + parsed[mac]["freq"] + "\",channel=\"" + parsed[mac]["channel"] + "\",} " + parsed[mac]["signal"] + "\n"
     return output
 
