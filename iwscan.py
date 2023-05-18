@@ -49,15 +49,17 @@ def parseiwscan(iw_output):
             #print("freq=" + freq)
             output[bss]["freq"] = freq
         # if primary channel: 8
-        if re.search("^\t\t\ \*\ primary\ channel:", line):
+        if re.search("^[\ |\t]*\*\ primary\ channel:", line):
             #print(line)
-            regex = r'(?:^\t\t\ \*\ primary\ channel: )([0-9]*)'
+            regex = r'(?:^[\ |\t]*\*\ primary\ channel: )([0-9]*)'
             if (re.findall(regex, line)[0]):
                 channel = re.findall(regex, line)[0]
             else:
                 channel = ""
             #print("channel=" + channel)
             output[bss]["channel"] = channel
+        else: #should not happen but here we are...
+            output[bss]["channel"] = "?"
     #print(output)
     return output
 
