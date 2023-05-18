@@ -65,7 +65,12 @@ def json2prom(parsed):
     output = "# HELP wifi_ssids All scanned SSIDs with their signal quality.\n"
     output += "# TYPE wifi_ssids gauge\n"
     for mac in parsed: # TODO: protect from missing attributes
-        output += "wifi_ssids{mac=\"" + mac + "\",ssid=\"" + parsed[mac]["ssid"] + "\",freq=\"" + parsed[mac]["freq"] + "\",channel=\"" + parsed[mac]["channel"] + "\",} " + parsed[mac]["signal"] + "\n"
+        try:
+            channel = parsed[mac]["channel"]
+        except KeyError:
+            channel = "?"
+            print(parsed[mac]["ssid"] + " has no channel data")
+        output += "wifi_ssids{mac=\"" + mac + "\",ssid=\"" + parsed[mac]["ssid"] + "\",freq=\"" + parsed[mac]["freq"] + "\",channel=\"" + channel + "\",} " + parsed[mac]["signal"] + "\n"
     return output
 
 class Server(BaseHTTPRequestHandler):
