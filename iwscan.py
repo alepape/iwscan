@@ -141,7 +141,7 @@ class Server(BaseHTTPRequestHandler):
         test = "please use HTTP GET"
         self.wfile.write(test.encode("utf-8"))
         
-def run(server_class=HTTPServer, handler_class=Server, port=5024):
+def run(server_class=HTTPServer, handler_class=Server, port=5024): # TODO: put the port in the main config so it can be managed from container config
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     

@@ -14,7 +14,7 @@ It can then be used to generate a nice Grafana dashboard:
 - For now, a few things are hard coded but should suit most RPi setup where the SBC has its main connection to the network via ethernet, leaving the Wifi module free to be used for scanning 
   - wlan0 is the interface used
   - 5024 is the TCP port exposed
-- The docker version (based on arm64v8/python:3.11-rc-bullseye) needs 2 things to work
+- The docker version (based on python:3.9.13-alpine) needs 2 things to work
   - priviledge mode
   - network type "host"
 
