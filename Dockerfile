@@ -4,6 +4,11 @@ FROM python:3.9.13-alpine
 
 RUN apk add iw
 COPY iwscan.py ./
+COPY paho_mqtt-2.1.0-py3-none-any.whl ./
+RUN pip install paho_mqtt-2.1.0-py3-none-any.whl
+
+# TODO: refer to config file / ENV vars from container config?
+# see yacje for an example
 
 # Trigger test
 #ENTRYPOINT ["tail", "-f", "/dev/null"]

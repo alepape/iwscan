@@ -6,6 +6,21 @@ import sys
 import json
 import time
 import subprocess
+import paho.mqtt.client as mqtt
+
+mqttc = set()
+
+# TODO: implement as file read
+# with open("config.json", "r") as jsonfile
+#   data = json.load(jsonfile)
+config = {
+    "topic": "alepape/test/ssids",
+    "mqtt_host": "192.168.1.17",
+    "mqtt_port": 1883,
+    "mqtt_user": "alepape",
+    "mqtt_pwd": "tfg73pki",
+    "ssids": [ "AlexHD" ]
+}
 
 def parseiwscan(iw_output):
     output = {}
@@ -73,6 +88,28 @@ def json2prom(parsed):
         output += "wifi_ssids{mac=\"" + mac + "\",ssid=\"" + parsed[mac]["ssid"] + "\",freq=\"" + parsed[mac]["freq"] + "\",channel=\"" + channel + "\",} " + parsed[mac]["signal"] + "\n"
     return output
 
+def filterSSIDjson(parsed, ssids):
+    res = {}
+    for mac in parsed: 
+        if parsed[mac]["ssid"] in ssids:
+            res[mac] = parsed[mac]
+    return res
+
+def push2mqtt(client, topic, payloadobj):
+    # parse the json first to build the topic structure:
+    # mac/freq, mac/channel, mac/signal, and mac/ssid
+
+    for mac in payloadobj:
+        client.publish(topic + "/" + mac + "/" + "freq", payloadobj[mac]["freq"], qos=1)
+        client.publish(topic + "/" + mac + "/" + "channel", payloadobj[mac]["channel"], qos=1)
+        client.publish(topic + "/" + mac + "/" + "signal", payloadobj[mac]["signal"], qos=1)
+        client.publish(topic + "/" + mac + "/" + "ssid", payloadobj[mac]["ssid"], qos=1)
+
+    # TODO: use HA hierarchy (sensors + config for auto discovery)
+
+def on_connect(client, userdata, flags, rc, properties):
+    print("Connected with result code " + str(rc))
+
 class Server(BaseHTTPRequestHandler):
     def _set_headers(self):
         self.send_response(200)
@@ -84,12 +121,16 @@ class Server(BaseHTTPRequestHandler):
         
     # GET sends back a Hello world message
     def do_GET(self):
+        global config
+        global mqttc
         self._set_headers()
         #command = ['iw', 'wlan0 scan | egrep -i '^BSS|SSID:|signal:|freq:'']
         command = ["iw", "wlan0", "scan"]
         result = subprocess.run(command, capture_output=True, text=True)
         ifscan = result.stdout
         parsed = parseiwscan(ifscan)
+
+        push2mqtt(mqttc, config['topic'], filterSSIDjson(parsed, config['ssids']))
         metrics = json2prom(parsed)
         #print(result.returncode, result.stdout, result.stderr)
         self.wfile.write(metrics.encode("utf-8"))
@@ -104,8 +145,19 @@ def run(server_class=HTTPServer, handler_class=Server, port=5024):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     
+    print('Starting MQTT loop')
+    global config
+    global mqttc
+    mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    mqttc.username_pw_set(config['mqtt_user'], config['mqtt_pwd'])
+    mqttc.connect(config['mqtt_host'], config['mqtt_port'])
+    mqttc.loop_start()
+
     print('Starting httpd on port %d...' % port)
     httpd.serve_forever()
+
+    mqttc.disconnect()
+    mqttc.loop_stop()
     
 if __name__ == "__main__":
     from sys import argv
