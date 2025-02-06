@@ -12,6 +12,9 @@ RUN pip install paho_mqtt-2.1.0-py3-none-any.whl
 
 # Trigger test
 #ENTRYPOINT ["tail", "-f", "/dev/null"]
-CMD ["python", "./iwscan.py"]
+#CMD ["python", "./iwscan.py"]
+COPY ./env_mgt.sh /tmp/
+
+ENTRYPOINT /tmp/env_mgt.sh
 
 EXPOSE 5024
