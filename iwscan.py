@@ -10,17 +10,20 @@ import paho.mqtt.client as mqtt
 
 mqttc = set()
 
-# TODO: implement as file read
-# with open("config.json", "r") as jsonfile
-#   data = json.load(jsonfile)
-config = {
-    "topic": "alepape/test/ssids",
-    "mqtt_host": "192.168.1.17",
-    "mqtt_port": 1883,
-    "mqtt_user": "alepape",
-    "mqtt_pwd": "tfg73pki",
-    "ssids": [ "AlexHD" ]
-}
+with open("config.json", "r") as jsonfile:
+  config = json.load(jsonfile)
+
+print("Config loaded - checking "+config['ssids'][0])
+
+# config = data
+# {
+#     "topic": "alepape/test/ssids",
+#     "mqtt_host": "192.168.1.17",
+#     "mqtt_port": 1883,
+#     "mqtt_user": "alepape",
+#     "mqtt_pwd": "tfg73pki",
+#     "ssids": [ "AlexHD" ]
+# }
 
 def parseiwscan(iw_output):
     output = {}
