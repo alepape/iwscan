@@ -1,5 +1,5 @@
 {
-    "topic": "alepape/test/ssids",
+    "topic": "homeassistant/sensor/ssids",
     "mqtt_host": "192.168.1.17",
     "mqtt_port": 1883,
     "mqtt_user": "alepape",

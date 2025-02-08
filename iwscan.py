@@ -98,15 +98,37 @@ def filterSSIDjson(parsed, ssids):
             res[mac] = parsed[mac]
     return res
 
+# Topic: homeassistant/sensor/TVPC/TVPC_cpuload/config
+# {
+#   "availability_topic": "homeassistant/sensor/TVPC/availability",
+#   "icon": "mdi:chart-areaspline", -----------------------------> use wifi-star
+#   "unique_id": "aa15fb6b-6cce-45e1-8101-e839b1292b55",
+#   "unit_of_measurement": "%",
+#   "device": {
+#     "identifiers": "hass.agent-TVPC",
+#     "manufacturer": "LAB02 Research",
+#     "model": "Microsoft Windows NT 10.0.19045.0",
+#     "name": "TVPC",
+#     "sw_version": "2022.14.0"
+#   },
+#   "name": "TVPC_cpuload",
+#   "state_topic": "homeassistant/sensor/TVPC/TVPC_cpuload/state"
+# }
+
+# TODO: availability per mac (needs a new topic)
+# need a unique ID per sensor, that *stays* between runs!!!!?
+# TODO: generate config
+# TODO: send config @ frequency???
+
 def push2mqtt(client, topic, payloadobj):
     # parse the json first to build the topic structure:
     # mac/freq, mac/channel, mac/signal, and mac/ssid
 
     for mac in payloadobj:
-        client.publish(topic + "/" + mac + "/" + "freq", payloadobj[mac]["freq"], qos=1)
-        client.publish(topic + "/" + mac + "/" + "channel", payloadobj[mac]["channel"], qos=1)
-        client.publish(topic + "/" + mac + "/" + "signal", payloadobj[mac]["signal"], qos=1)
-        client.publish(topic + "/" + mac + "/" + "ssid", payloadobj[mac]["ssid"], qos=1)
+        client.publish(topic + "/" + mac + "/" + "freq", payloadobj[mac]["freq"], qos=1) # MHz
+        client.publish(topic + "/" + mac + "/" + "channel", payloadobj[mac]["channel"], qos=1) # no unit
+        client.publish(topic + "/" + mac + "/" + "signal", payloadobj[mac]["signal"], qos=1) # dB
+        client.publish(topic + "/" + mac + "/" + "ssid", payloadobj[mac]["ssid"], qos=1) # no unit
 
     # TODO: use HA hierarchy (sensors + config for auto discovery)
 
