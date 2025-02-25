@@ -15,6 +15,9 @@ with open("config.json", "r") as jsonfile:
 
 print("Config loaded - checking "+config['ssids'][0])
 
+measures = '[{"measure":"freq","unit":"MHz"},{"measure":"channel","unit":null},{"measure":"signal","unit":"dB"},{"measure":"ssid","unit":null}]' # TODO: put me in docker ENV config
+config["measures"] = json.load(measures)
+
 # config = data
 # {
 #     "topic": "alepape/test/ssids",
@@ -118,11 +121,43 @@ def filterSSIDjson(parsed, ssids):
 # TODO: availability per mac (needs a new topic)
 # need a unique ID per sensor, that *stays* between runs!!!!?
 # TODO: generate config
-# TODO: send config @ frequency???
+# TODO: send config @ frequency??? => upon start, w/ retain flag
+# TODO: availability_topic as well as state_topic
+
+def config2mqtt(client, topic, payloadobj, config):
+# Topic: homeassistant/sensor/ssids/ + mac <= each mac is a device
+# {
+#   "availability_topic": "homeassistant/sensor/ssids/ + mac + /availability",
+#   "icon": "mdi:wifi-star",
+#   "unique_id": mac,
+#   "unit_of_measurement": "MHz",
+#   "device": {
+#     "identifiers": "hass.agent-TVPC",
+#     "manufacturer": "LAB02 Research",
+#     "model": "Microsoft Windows NT 10.0.19045.0",
+#     "name": "TVPC",
+#     "sw_version": "2022.14.0"
+#   },
+#   "name": "TVPC_cpuload",
+#   "state_topic": "homeassistant/sensor/TVPC/TVPC_cpuload/state"
+# }
+    for mac in payloadobj:
+        root = topic + "/" + mac + "/"
+        topic = root + "config"
+        config = {}
+        config["availability_topic"] = root + "availability"
+        config["icon"] = "mdi:wifi-star"
+        config["unique_id"] = mac
+        config["unit_of_measurement"] = "" #TODO
+        config["name"] = mac + "" #TODO
+        config["state_topic"] = root + "" #TODO
+
+
 
 def push2mqtt(client, topic, payloadobj):
     # parse the json first to build the topic structure:
     # mac/freq, mac/channel, mac/signal, and mac/ssid
+    # TODO: availability_topic as well!!!
 
     for mac in payloadobj:
         client.publish(topic + "/" + mac + "/" + "freq", payloadobj[mac]["freq"], qos=1) # MHz
@@ -130,7 +165,7 @@ def push2mqtt(client, topic, payloadobj):
         client.publish(topic + "/" + mac + "/" + "signal", payloadobj[mac]["signal"], qos=1) # dB
         client.publish(topic + "/" + mac + "/" + "ssid", payloadobj[mac]["ssid"], qos=1) # no unit
 
-    # TODO: use HA hierarchy (sensors + config for auto discovery)
+    # TODO: use HA hierarchy (device + sensors + config for auto discovery)
 
 def on_connect(client, userdata, flags, rc, properties):
     print("Connected with result code " + str(rc))
@@ -144,7 +179,7 @@ class Server(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self._set_headers()
         
-    # GET sends back a Hello world message
+    # GET sends prometheus data
     def do_GET(self):
         global config
         global mqttc
@@ -155,7 +190,10 @@ class Server(BaseHTTPRequestHandler):
         ifscan = result.stdout
         parsed = parseiwscan(ifscan)
 
+        #MQTT
         push2mqtt(mqttc, config['topic'], filterSSIDjson(parsed, config['ssids']))
+
+        #PROMETHEUS
         metrics = json2prom(parsed)
         #print(result.returncode, result.stdout, result.stderr)
         self.wfile.write(metrics.encode("utf-8"))

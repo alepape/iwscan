@@ -6,15 +6,6 @@ RUN apk add iw
 COPY iwscan.py ./
 COPY paho_mqtt-2.1.0-py3-none-any.whl ./
 RUN pip install paho_mqtt-2.1.0-py3-none-any.whl
-
-# TODO: refer to config file / ENV vars from container config?
-# see yacje for an example
-
-# Trigger test
-#ENTRYPOINT ["tail", "-f", "/dev/null"]
-#CMD ["python", "./iwscan.py"]
 COPY ./env_mgt.sh /tmp/
-
 ENTRYPOINT /tmp/env_mgt.sh
-
 EXPOSE 5024
