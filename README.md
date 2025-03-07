@@ -1,6 +1,6 @@
 # Scope
 
-iwscan is a simple python script that parses the result if the "iw" command and exposes it as prometheus metrics.
+iwscan is a simple python script that parses the result if the "iw" command and exposes it as prometheus metrics and as a Home Assistant sensor via MQTT.
 It's also available as a docker image on [alexlepape/iwscan](https://hub.docker.com/r/alexlepape/iwscan).
 It can then be used to generate a nice Grafana dashboard:
 
@@ -17,8 +17,15 @@ It can then be used to generate a nice Grafana dashboard:
 - The docker version (based on python:3.9.13-alpine) needs 2 things to work
   - priviledge mode
   - network type "host"
+- The Home Assistant setup is hardcoded to provide 3 measures per configured SSID
+  - frequency
+  - channel
+  - signal
+- To enable the Home Assistant setup, ENV variables need to be specified in DOCKER, or a config.json file needs to be added next to python script (see setup below). Also note that the production of the sensor values depend on prometheus to regularly query the endpoint. Therefore, the frequency of update of the sensor depends on the prometheus configuration.
 
 # Setup
+
+## Docker
 
 - deploy the image [alexlepape/iwscan](https://hub.docker.com/r/alexlepape/iwscan) on your RPi Docker
 - don't forget to check that it's privileged and the network type to host
@@ -28,11 +35,37 @@ It can then be used to generate a nice Grafana dashboard:
     container_name: iwscan
     network_mode: "host"
     image: alexlepape/iwscan:latest
+    environment:
+      - TOPIC_PREFIX=homeassistant/sensor/ssids
+      - MQTT_HOST=<your MQTT broker IP>
+      - MQTT_PORT=1883
+      - MQTT_USR=<your MQTT broker username>
+      - MQTT_PWD=<your MQTT broker password>
+      - SSID=<the SSID you want to monitor>    
     restart: unless-stopped
     privileged: true
 ```
 - test it on `http://<your docker IP>:5024/metrics`
-- add it as a source in your prometheus
+
+## Direct
+
+- if you want the HA to work, create a config.json file such as
+```json
+{
+    "topic": "homeassistant/sensor/ssids",
+    "mqtt_host": "<your MQTT broker IP>",
+    "mqtt_port": 1883,
+    "mqtt_user": "<your MQTT broker username>",
+    "mqtt_pwd": "<your MQTT broker password>",
+    "ssids": [ "SSID1", "SSID2" ]
+}
+```
+- just run `sudo python3 iwscan.py` - note: sudo-ing might not be required depending on your setup.
+- note that in that case, several SSIDs can be monitored
+
+## Using it
+
+- add `http://<your docker IP>:5024/metrics` as a source in your prometheus:
 ```yaml
   - job_name: 'wifiscan'
     static_configs:
@@ -40,3 +73,4 @@ It can then be used to generate a nice Grafana dashboard:
 ```
 - an example dashboard can be found [here](grafana.json)
 - you can just point it to the proper node (your RPi IP)
+

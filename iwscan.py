@@ -13,10 +13,13 @@ mqttc = set()
 with open("config.json", "r") as jsonfile:
   config = json.load(jsonfile)
 
-print("Config loaded - checking "+config['ssids'][0])
+print("Config loaded - checking " + config['ssids'][0] + " for:")
 
-measures = '[{"measure":"freq","unit":"MHz"},{"measure":"channel","unit":null},{"measure":"signal","unit":"dB"},{"measure":"ssid","unit":null}]' # TODO: put me in docker ENV config
-config["measures"] = json.load(measures)
+#measures = '[{"measure":"freq","icon":"mdi:sine-wave","unit":"MHz"},{"measure":"channel","icon":"mdi:radio-tower","unit":null},{"measure":"signal","icon":"mdi:signal-cellular-2","unit":"dB"},{"measure":"ssid","icon":"mdi:wifi","unit":null}]' # TODO: put me in docker ENV config
+measures = '[{"measure":"freq","icon":"mdi:sine-wave","unit":"MHz"},{"measure":"channel","icon":"mdi:radio-tower","unit":null},{"measure":"signal","icon":"mdi:signal-cellular-2","unit":"dB"}]' # TODO: put me in docker ENV config
+config["measures"] = json.loads(measures)
+for mes in config["measures"]:
+    print(mes["measure"])
 
 # config = data
 # {
@@ -101,71 +104,45 @@ def filterSSIDjson(parsed, ssids):
             res[mac] = parsed[mac]
     return res
 
-# Topic: homeassistant/sensor/TVPC/TVPC_cpuload/config
-# {
-#   "availability_topic": "homeassistant/sensor/TVPC/availability",
-#   "icon": "mdi:chart-areaspline", -----------------------------> use wifi-star
-#   "unique_id": "aa15fb6b-6cce-45e1-8101-e839b1292b55",
-#   "unit_of_measurement": "%",
-#   "device": {
-#     "identifiers": "hass.agent-TVPC",
-#     "manufacturer": "LAB02 Research",
-#     "model": "Microsoft Windows NT 10.0.19045.0",
-#     "name": "TVPC",
-#     "sw_version": "2022.14.0"
-#   },
-#   "name": "TVPC_cpuload",
-#   "state_topic": "homeassistant/sensor/TVPC/TVPC_cpuload/state"
-# }
-
-# TODO: availability per mac (needs a new topic)
-# need a unique ID per sensor, that *stays* between runs!!!!?
-# TODO: generate config
 # TODO: send config @ frequency??? => upon start, w/ retain flag
-# TODO: availability_topic as well as state_topic
 
-def config2mqtt(client, topic, payloadobj, config):
-# Topic: homeassistant/sensor/ssids/ + mac <= each mac is a device
-# {
-#   "availability_topic": "homeassistant/sensor/ssids/ + mac + /availability",
-#   "icon": "mdi:wifi-star",
-#   "unique_id": mac,
-#   "unit_of_measurement": "MHz",
-#   "device": {
-#     "identifiers": "hass.agent-TVPC",
-#     "manufacturer": "LAB02 Research",
-#     "model": "Microsoft Windows NT 10.0.19045.0",
-#     "name": "TVPC",
-#     "sw_version": "2022.14.0"
-#   },
-#   "name": "TVPC_cpuload",
-#   "state_topic": "homeassistant/sensor/TVPC/TVPC_cpuload/state"
-# }
-    for mac in payloadobj:
-        root = topic + "/" + mac + "/"
-        topic = root + "config"
-        config = {}
-        config["availability_topic"] = root + "availability"
-        config["icon"] = "mdi:wifi-star"
-        config["unique_id"] = mac
-        config["unit_of_measurement"] = "" #TODO
-        config["name"] = mac + "" #TODO
-        config["state_topic"] = root + "" #TODO
+def config2mqtt(client, topic, payloadobj, config, _has_run=[]):
+    if _has_run: return
+    _has_run.append(1) # runs only once
 
-
-
-def push2mqtt(client, topic, payloadobj):
-    # parse the json first to build the topic structure:
-    # mac/freq, mac/channel, mac/signal, and mac/ssid
-    # TODO: availability_topic as well!!!
+    print("sending config:")
+    measures = config["measures"]
+    print(json.dumps(measures))
 
     for mac in payloadobj:
-        client.publish(topic + "/" + mac + "/" + "freq", payloadobj[mac]["freq"], qos=1) # MHz
-        client.publish(topic + "/" + mac + "/" + "channel", payloadobj[mac]["channel"], qos=1) # no unit
-        client.publish(topic + "/" + mac + "/" + "signal", payloadobj[mac]["signal"], qos=1) # dB
-        client.publish(topic + "/" + mac + "/" + "ssid", payloadobj[mac]["ssid"], qos=1) # no unit
+        macStr = mac.replace(":", "")
+        root = topic + "_" + macStr + "/"
+        device = {}
+        device["identifiers"] = "iwscan-ssids-" + payloadobj[mac]["ssid"]
+        device["manufacturer"] = "ALP"
+        device["model"] = "ALP iwscan"
+        device["name"] = payloadobj[mac]["ssid"] # or "ssids" ??
+        for mes in measures:
+            config = {}
+            # config["availability_topic"] = root + "availability"
+            config["icon"] = mes["icon"]
+            config["unique_id"] = macStr + "_" + mes["measure"]
+            config["device"] = device
+            if mes["unit"] is not None:
+                config["unit_of_measurement"] = mes["unit"]
+            config["name"] = mac + " " + mes["measure"]
+            config["state_topic"] = root + mes["measure"] + "/state"
 
-    # TODO: use HA hierarchy (device + sensors + config for auto discovery)
+            jsonStr = json.dumps(config)
+            # retain: bool = False
+            client.publish(root + mes["measure"] + "/config", jsonStr, qos=1, retain=True)
+
+def push2mqtt(client, topic, payloadobj, config):
+    measures = config["measures"]
+    for mac in payloadobj:
+        macStr = mac.replace(":", "")
+        for mes in measures:
+            client.publish(topic + "_" + macStr + "/" + mes["measure"] + "/state", payloadobj[mac][mes["measure"]], qos=1)
 
 def on_connect(client, userdata, flags, rc, properties):
     print("Connected with result code " + str(rc))
@@ -191,7 +168,9 @@ class Server(BaseHTTPRequestHandler):
         parsed = parseiwscan(ifscan)
 
         #MQTT
-        push2mqtt(mqttc, config['topic'], filterSSIDjson(parsed, config['ssids']))
+        payloadSrc = filterSSIDjson(parsed, config['ssids'])
+        config2mqtt(mqttc, config['topic'], payloadSrc, config) # should only happen once
+        push2mqtt(mqttc, config['topic'], payloadSrc, config)
 
         #PROMETHEUS
         metrics = json2prom(parsed)
